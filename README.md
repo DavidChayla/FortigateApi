@@ -26,7 +26,7 @@ If an example is worth a thousand words:
 
 import FortigateApi, sys
 
-fg = FortigateApi.Fortigate(<ip>, <vdom>, <user>, <passwd>)
+fg = FortigateApi.Fortigate(ip, vdom, user, passwd)
 
 
 fg.AddVlanInterfaceIdempotent(name='myInt', interface='Internal1', vlanid=222, ip_mask='1.1.1.1 255.255.255.0', vdom='mydom', mode='static', allowaccess='ping')
@@ -35,9 +35,9 @@ fg.GetVlanInterface('myint')
 
 fg.DelInterface('myint')
 
-fg.AddRouterStaticIdempotent('0.0.0.0 0.0.0.0', <int_name>, <gw_ip>)
+fg.AddRouterStaticIdempotent('0.0.0.0 0.0.0.0', int_name, gw_ip)
 
-fg.AddFwAddressIdempotent(<name>, <ip mask>, <interface>)
+fg.AddFwAddressIdempotent(name, ip mask, interface)
 
 ...
 
