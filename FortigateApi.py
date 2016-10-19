@@ -1,6 +1,7 @@
 # FortigateApi.py
 # access to fortigate rest api
 # David Chayla - nov 2016
+# Sigma Informatique www.sigma.fr
 
 import requests, json
 
