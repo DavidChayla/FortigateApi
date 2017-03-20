@@ -1,10 +1,15 @@
 # FortigateApi.py
 # access to fortigate rest api
-# David Chayla - jan 2017
+# David Chayla - nov 2016
 # v1
 # v1.2 django edition
 # v1.3 https enabled
 # v1.4 add http put method
+# v1.5 traffic shaper on  fw policy
+# v1.6 add access to user local 
+# v1.7 correction DelAllUserLocal
+# v1.8 creation method DelAllVPNipsec() + correction DelSystemAdmin()
+
 
 import requests, json
 
@@ -29,14 +34,15 @@ class Fortigate:
         #verify=False to permit login even with no valid ssl cert
         self.r = self.s.post(self.login_url, data=payload, verify=False)
 
-        #print 'login status:', self.r.status_code
+        print 'login status:', self.r.status_code
         #print 'cookie:', self.s.cookies['ccsrftoken']
 
         for cookie in self.s.cookies:
             if cookie.name == 'ccsrftoken':
                 csrftoken = cookie.value[1:-1]
                 self.s.headers.update({'X-CSRFTOKEN': csrftoken})
-    
+        
+
     def Logout(self):
         req = self.s.get(self.logout_url)
         #print 'logout status:', req.status_code
@@ -79,7 +85,7 @@ class Fortigate:
         url: the api url to test the objects (type string)
         objects: the list of objects you want to test (type [[]])
             ex:
-                objects =  [['name','srv-A''],['subnet','10.1.1.1/32']] 
+                objects =  [['name','srv-A'],['subnet','10.1.1.1/32']] 
                 self.Exists('cmdb/firewall/address/', objects)
 
         Returns
@@ -222,7 +228,7 @@ class Fortigate:
    
     def AddSystemAdminIdempotent(self, name, password, profile='prof_admin', remote_auth='disable'):
         """
-        Create a system admin on the vdom, return o if it already exist.
+        Create a system admin on the vdom, return ok if it already exist.
 
         Parameters
         ----------  
@@ -295,8 +301,157 @@ class Fortigate:
                 'name': 'admin'
                 }     
             }
-        return self.ApiDelete('cmdb/system/admin/' + name +'/', data=payload)
+        return self.ApiDelete('cmdb/system/admin/'+ name + '/', data=payload)
+    #
+    def GetUserLocal(self, name=''):
+        '''
+        Return the json user local object, when the param name is defined it returns the selected object, without name: return all the objects.
 
+        Parameters
+        ----------        
+        name: the system admin object name (type string)
+        
+        Returns
+        -------
+        Return the json object
+        '''
+        req = self.ApiGet('cmdb/user/local/' + name)
+        return req.text
+
+    def AddUserLocal(self, name, passwd, type_user='password', status='enable', email_to='', ldap_server='', radius_server=''):
+        """
+        Create a user local on the vdom.
+
+        Parameters
+        ----------  
+        name: the system admin name (type string)
+        passwd: the system admin password (type string)
+        type_user: set to 'password' for Local (type string)
+        status: (type string)(default enable)
+        email_to: (type string)(default'')
+        ldap_server: (type string)(default'')
+        radius_server: (type string)(default'')
+
+        Returns
+        -------
+        Http status code: 200 if ok, 4xx if an error occurs
+        """ 
+        name = str(name)
+        passwd = str(passwd)
+
+        payload = {'json':
+                    {
+                    'name':  name,
+                    'passwd': passwd,
+                    'type': type_user,
+                    'status': status,
+                    'email-to': email_to,
+                    'ldap-server': ldap_server,
+                    'radius-server': radius_server,
+                    }     
+                }
+        return self.ApiAdd('cmdb/user/local/', payload)
+    
+    def AddUserLocalIdempotent(self, name, passwd, type_user='password', status='enable', email_to='', ldap_server='', radius_server=''):
+        """
+        Create a user local on the vdom, return ok if it already exist.
+
+        Parameters
+        ----------  
+        name: the system admin name (type string)
+        passwd: the system admin password (type string)
+        type_user: set to 'password' for Local (type string)
+        status: (type string)(default enable)
+        email_to: (type string)(default'')
+        ldap_server: (type string)(default'')
+        radius_server: (type string)(default'')
+
+        Returns
+        -------
+        Http status code: 200 if ok, 4xx if an error occurs
+        """ 
+        name = str(name)
+        passwd = str(passwd)
+        objects =  [['name',name],['type',type_user]]
+        if not (self.Exists('cmdb/user/local/', objects)):
+            #object does not exist, create it
+            return self.AddUserLocal(name, passwd, type_user, status, email_to, ldap_server, radius_server) 
+        else: 
+            #object already Exists
+            return 200
+
+    def SetUserLocal(self, name, passwd, type_user='password', status='enable', email_to='', ldap_server='', radius_server=''):
+        """
+        Modify a user local on the vdom.
+
+        Parameters
+        ----------  
+        name: the system admin name (type string)
+        passwd: the system admin password (type string)
+        type_user: set to 'password' for Local (type string)
+        status: (type string)(default enable)
+        email_to: (type string)(default'')
+        ldap_server: (type string)(default'')
+        radius_server: (type string)(default'')
+            
+        Returns
+        -------
+        Http status code: 200 if ok, 4xx if an error occurs
+        """ 
+        name = str(name)
+        passwd = str(passwd)
+
+        payload = {'json':
+                    {
+                    'name':  name,
+                    'passwd': passwd,
+                    'type': type_user,
+                    'status': status,
+                    'email-to': email_to,
+                    'ldap-server': ldap_server,
+                    'radius-server': radius_server,
+                    }     
+                }
+        return self.ApiSet('cmdb/user/local/'+ name + '/', payload)
+
+    def DelUserLocal(self, name):
+        """
+        Delete user local object referenced by name.
+
+        Parameters
+        ----------        
+        name: object to delete (type string)
+
+        Returns
+        -------
+        Http status code: 200 if ok, 4xx if an error occurs
+        """
+        payload = {'json':
+                {
+                'name': 'local'
+                }     
+            }
+        return self.ApiDelete('cmdb/user/local/' + name + '/', data=payload)
+    
+    def DelAllUserLocal(self):
+        """
+        Delete all user local object of the vdom.
+
+        Parameters
+        ----------        
+
+        Returns
+        -------
+        Http status code: 200 if ok, 4xx if an error occurs
+        """
+        req = self.ApiGet('cmdb/user/local/')
+        data = json.loads(req.text)
+        for y in range(0,len(data['results'])):
+            user_name = data['results'][y]['name']
+            return_code = self.DelUserLocal(user_name)
+            print 'del user :', user_name, '(', return_code,')'
+            if return_code != 200: return return_code
+        return 200
     #
     def GetInterface(self, name=''):
         """
@@ -590,7 +745,6 @@ class Fortigate:
 
         Parameters
         ----------        
-        name: object to delete (type string)
 
         Returns
         -------
@@ -604,7 +758,8 @@ class Fortigate:
                 int_name = data['results'][y]['name']
                 return_code = self.DelInterface(int_name)
                 print 'del interface:', int_name, '(', return_code,')'
-                if return_code != 200: final_return_code = return_code
+                if return_code != 200 and int_name.find('ssl.') == -1:
+                        final_return_code = return_code
         return final_return_code
     #
     def GetFwAddress(self, name=''):
@@ -719,10 +874,10 @@ class Fortigate:
         """  
         payload = {'json':
                     {
-                    'name':'address'
+                    'name': name
                     }
                 }
-        return self.ApiDelete('cmdb/firewall/address/' + name + '/', data=payload)
+        return self.ApiDelete('cmdb/firewall/address/', data=payload)
 
     def DelAllFwAddress(self):
         """
@@ -844,10 +999,10 @@ class Fortigate:
         """  
         payload = {'json':
                     {
-                    'name': "addrgrp"
+                    'name': name
                     }     
                 }
-        return self.ApiDelete('cmdb/firewall/addrgrp/' + name + '/', payload)
+        return self.ApiDelete('cmdb/firewall/addrgrp/', payload)
     
     def DelAllFwAddressGroup(self):
         """
@@ -1045,7 +1200,7 @@ class Fortigate:
         req = self.ApiGet('cmdb/firewall/policy/' + id)
         return req.text
 
-    def AddFwPolicy(self, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL', action='accept', schedule='always', nat='disable', poolname='[]', ippool='disable', status='enable', comments=''):
+    def AddFwPolicy(self, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL', action='accept', schedule='always', nat='disable', poolname='[]', ippool='disable', status='enable', comments='', traffic_shaper='', traffic_shaper_reverse=''):
         """
         Create a fw policy.
 
@@ -1063,6 +1218,8 @@ class Fortigate:
         #ippool: if you enabled nat, the ippool (type string)(default disable)
         #status: the status of the policy, type choice string: enable or disable (default enable)
         #comment: (type string)
+        #traffic_shaper: traffic shaper object name (type string)
+        #traffic_shaper_reverse: traffic shaper object name (type string)
 
         Returns
         -------
@@ -1103,6 +1260,8 @@ class Fortigate:
                     'status': status,
                     'nat': nat,
                     'ippool': ippool,
+                    'traffic-shaper': traffic_shaper,
+                    'traffic-shaper-reverse': traffic_shaper_reverse,
                     'poolname': [
                             {
                              'name': poolname
@@ -1118,7 +1277,7 @@ class Fortigate:
                 }
         return self.ApiAdd('cmdb/firewall/policy/', payload)
 
-    def AddFwPolicyIdempotent(self, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL', action='accept', schedule='always', nat='disable', poolname='[]', ippool='disable', status='enable', comments=''):
+    def AddFwPolicyIdempotent(self, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL', action='accept', schedule='always', nat='disable', poolname='[]', ippool='disable', status='enable', comments='', traffic_shaper='', traffic_shaper_reverse=''):
         """
         Create a fw policy, return 200 if the policy already exists.
 
@@ -1136,6 +1295,8 @@ class Fortigate:
         #ippool: if you enabled nat, the ippool (type string)(default disable)
         #status: the status of the policy, type choice string: enable or disable (default enable)
         #comment: (type string)
+        #traffic_shaper: traffic shaper object name (type string)
+        #traffic_shaper_reverse: traffic shaper object name (type string)
 
         Returns
         -------
@@ -1147,17 +1308,17 @@ class Fortigate:
         dstaddr= str(dstaddr)
         service= str(service)
         action= str(action)
-        objects =  [['srcintf',srcintf],['dstintf',dstintf],['srcaddr',srcaddr],['dstaddr',dstaddr],['service',service],['action',action],['schedule',schedule],['nat',nat],['poolname',poolname],['ippool',ippool],['status',status]] 
+        objects =  [['srcintf',srcintf],['dstintf',dstintf],['srcaddr',srcaddr],['dstaddr',dstaddr],['service',service],['action',action],['schedule',schedule],['nat',nat],['poolname',poolname],['ippool',ippool],['status',status],['traffic-shaper',traffic_shaper],['traffic-shaper-reverse',traffic_shaper_reverse]] 
         if not (self.Exists('cmdb/firewall/policy/', objects)):
             #object does not exist, create it
             #print 'AddFwPolicyIdempotent: object does not exists'
-            return self.AddFwPolicy(srcintf, dstintf, srcaddr, dstaddr, service, action, schedule, nat, poolname, ippool, status, comments)
+            return self.AddFwPolicy(srcintf, dstintf, srcaddr, dstaddr, service, action, schedule, nat, poolname, ippool, status, comments, traffic_shaper, traffic_shaper_reverse)
         else: 
             #object already Exists
             #print 'AddFwPolicyIdempotent: object already exists'
             return 200
 
-    def SetFwPolicy(self, id, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL', action='accept', schedule='always', nat='disable', poolname='[]', ippool='disable', status='enable', comments=''):
+    def SetFwPolicy(self, id, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL', action='accept', schedule='always', nat='disable', poolname='[]', ippool='disable', status='enable', comments='', traffic_shaper='', traffic_shaper_reverse=''):
         """
         Modify a fw policy.
 
@@ -1176,6 +1337,8 @@ class Fortigate:
         #ippool: if you enabled nat, the ippool (type string)(default disable)
         #status: the status of the policy, type choice string: enable or disable (default enable)
         #comment: (type string)
+        #traffic_shaper: traffic shaper object name (type string)
+        #traffic_shaper_reverse: traffic shaper object name (type string)
 
         Returns
         -------
@@ -1217,6 +1380,8 @@ class Fortigate:
                     'status': status,
                     'nat': nat,
                     'ippool': ippool,
+                    'traffic-shaper': traffic_shaper,
+                    'traffic-shaper-reverse': traffic_shaper_reverse,
                     'poolname': [
                             {
                              'name': poolname
@@ -1233,40 +1398,9 @@ class Fortigate:
         return self.ApiSet('cmdb/firewall/policy/'+ id +'/', payload)
 
 
-    def SearchFwPolicyID(self, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL'):
-        """
-        Search a policy id from his parameters and return his ID.
-        
-        Parameters
-        ----------
-        srcintf: source interface (type string)(default any)
-        dstintf: destination interface (type string)(default any)
-        srcaddr: source address (type string)(default any)
-        dstaddr: destination address (type string)(default any)
-        service: service (type string)(default ALL)
-        
-        Returns
-        -------
-        the id of the policy or 'None' if the policy was not found
-        """
-        objects =  [['srcintf',srcintf],['dstintf',dstintf],['srcaddr',srcaddr],['dstaddr',dstaddr],['service',service]] 
-        req = self.ApiGet('cmdb/firewall/policy/')
-        data = json.loads(req.text)
-        for y in range(0,len(data['results'])):
-            identical = True 
-            for x in range(0,len(objects)):
-                req_res = data['results'][y][objects[x][0]]
-                if (type(req_res) is list):
-                    if ((req_res != []) and (objects[x][1] != req_res[0]['name'])):
-                        #print 'object list is different:',objects[x][0], objects[x][1] ,'to',req_res[0]['name']
-                        identical = False
-                elif (objects[x][1] != req_res):
-                    #print 'object is different:', objects[x][0], ':', objects[x][1] ,'to', req_res
-                    identical = False	
-            if identical: 
-                #print 'policyid:', data['results'][y]['policyid']
-                return data['results'][y]['policyid']
-        return None
+
+    
+
 
     def DelFwPolicy(self, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL'):
         """
@@ -1285,7 +1419,7 @@ class Fortigate:
         Http status code: 200 if ok, 4xx if an error occurs
         """
         fw_id = self.SearchFwPolicyID(srcintf, dstintf, srcaddr, dstaddr, service)
-        if fw_id != None:
+        if fw_id != 0:
             return self.DelFwPolicyID(fw_id)
         else:    
             return 404
@@ -1307,7 +1441,7 @@ class Fortigate:
                 'name': 'policy'
                 }     
             }
-        return self.ApiDelete('cmdb/firewall/policy/' + str(id), data=payload) 
+        return self.ApiDelete('cmdb/firewall/policy/' + str(id) + '/', data=payload) 
     
     def DelAllFwPolicy(self):
         """
@@ -1328,6 +1462,86 @@ class Fortigate:
             print 'del fw policy id:', policy_id ,  '(', return_code,')'
             if return_code != 200: return return_code
         return 200
+    
+    def SearchFwPolicyID(self, srcintf='', dstintf='', srcaddr='', dstaddr='', service='', action='', schedule='', nat='', poolname='[]', ippool='', status='', comments='', traffic_shaper='', traffic_shaper_reverse=''):
+        """
+        Search a policy id from his parameters and return his ID.
+        
+        Parameters
+        ----------
+        srcintf: source interface (type string)(default any)
+        dstintf: destination interface (type string)(default any)
+        srcaddr: source address (type string)(default any)
+        dstaddr: destination address (type string)(default any)
+        service: service (type string)(default ALL)
+        #action: action, type choice string: accept or deny or drop (type string)(default accept)
+        #schedule: schedule (type string)(default always)
+        #nat: nat, type choice string: enable or disable (type string)(default disable)
+        #poolname: if you enabled nat, the poolname (type string)(default [])
+        #ippool: if you enabled nat, the ippool (type string)(default disable)
+        #status: the status of the policy, type choice string: enable or disable (default enable)
+        #comment: (type string)
+        #traffic_shaper: traffic shaper object name (type string)
+        #traffic_shaper_reverse: traffic shaper object name (type string)
+
+        Returns
+        -------
+        the id of the policy or 0 if the policy was not found
+        """
+        objects = []
+        if srcintf != '': 
+            objects.append(['srcintf',srcintf])
+        if dstintf != '':
+            objects.append(['dstintf',dstintf])
+        if srcaddr != '': 
+            objects.append(['srcaddr',srcaddr])
+        if dstaddr != '':
+            objects.append(['dstaddr',dstaddr])
+        if service != '': 
+            objects.append(['service',service])
+        if action != '':
+            objects.append(['action',action])
+        if schedule != '':
+            objects.append(['schedule',schedule])   
+        if nat != '':
+            objects.append(['nat',nat]) 
+        if poolname != '[]':
+            objects.append(['poolname',poolname])
+        if ippool != '':
+            objects.append(['ippool',ippool])
+        if status != '':
+            objects.append(['status',status])
+        if comments != '':
+            objects.append(['comments',comments])
+        if traffic_shaper != '':
+            objects.append(['traffic-shaper',traffic_shaper])
+        if traffic_shaper_reverse != '':
+            objects.append(['traffic-shaper-reverse',traffic_shaper_reverse])
+        
+        print objects
+
+        #get all fw policy
+        req = self.ApiGet('cmdb/firewall/policy/')
+        data = json.loads(req.text)
+        #parse policy one by one
+        for y in range(0,len(data['results'])):
+            identical = True 
+            #compare every parameters objects which is not null
+            for x in range(0,len(objects)):
+                req_res = data['results'][y][objects[x][0]]
+                if (type(req_res) is list):
+                    if ((req_res != []) and (objects[x][1] != req_res[0]['name'])):
+                        #print 'object list is different:',objects[x][0], objects[x][1] ,'to',req_res[0]['name']
+                        identical = False
+                        break
+                elif (objects[x][1] != req_res):
+                    print 'object is different:', objects[x][0], ':', objects[x][1] ,'to', req_res
+                    identical = False
+                    break
+            if identical: 
+                #print 'policyid:', data['results'][y]['policyid']
+                return data['results'][y]['policyid']
+        return 0
     #
     def GetFwService(self, name=''):
         '''
@@ -1464,10 +1678,10 @@ class Fortigate:
         """        
         payload = {'json':
                 {
-                'name': 'custom'
+                'name': name
                 }     
             }
-        return self.ApiDelete('cmdb/firewall.service/custom/' + name + '/', payload)
+        return self.ApiDelete('cmdb/firewall.service/custom/', payload)
     
     def DelAllFwService(self):
         """
@@ -1589,10 +1803,10 @@ class Fortigate:
         """
         payload = {'json':
                     {
-                    'name': 'group'
+                    'name': name
                     }     
                 }
-        return self.ApiDelete('cmdb/firewall.service/group/'+ name + '/', payload)    
+        return self.ApiDelete('cmdb/firewall.service/group/', payload)    
     
     def DelAllFwServiceGroup(self):
         """
@@ -1638,8 +1852,8 @@ class Fortigate:
         name: the name of the shaper (type string)
         per_policy : shaper applied per policy or 'all policy using this shaper', choice: enable/disable
         priority: choice: high/medium/low
-        guaranteed_bandwidth: in Kb/s (type string)
-        maximum_bandwidth: in Kb/s (type string)
+        guaranteed_bandwidth: in Kb/s (type int)
+        maximum_bandwidth: in Kb/s (type int)
         diffserv: choice: enable/disable (default disable)
         diffservcode: (type string) (default '000000')
 
@@ -1669,8 +1883,8 @@ class Fortigate:
         name: the name of the shaper (type string)
         per_policy : shaper applied per policy, choice: enable/disable
         priority: choice: high/medium/low
-        guaranteed_bandwidth: in Kb (type string)
-        maximum_bandwidth: in Kb (type string)
+        guaranteed_bandwidth: in Kb (type int)
+        maximum_bandwidth: in Kb (type int)
         diffserv: choice: enable/disable (default disable)
         diffservcode: (type string) (default '000000')
 
@@ -1710,7 +1924,7 @@ class Fortigate:
             'per-policy': per_policy,
             'priority': priority,
             'guaranteed-bandwidth':  int(guaranteed_bandwidth),
-            'maximum-bandwidth': int(maximum_bandwidth),
+            'maximum_bandwidth': int(maximum_bandwidth),
             'diffserv': diffserv, 
             'diffservcode': diffservcode
             }     
@@ -1731,10 +1945,10 @@ class Fortigate:
         """
         payload = {'json':
                     {
-                    'name': 'traffic-shaper'
+                    'name': name
                     }     
                 }
-        return self.ApiDelete('cmdb/firewall.shaper/traffic-shaper/' + name + '/', payload)     
+        return self.ApiDelete('cmdb/firewall.shaper/traffic-shaper/', payload)     
     
     def DelAllTrafficShaper(self):
         """
@@ -2030,7 +2244,7 @@ class Fortigate:
 
     def DelAllFwIPpool(self):
         """
-        Delete all the ip pool referenced of th vdom.
+        Delete all the ip pool referenced in the vdom.
 
         Parameters
         ----------        
@@ -2048,6 +2262,7 @@ class Fortigate:
             if return_code != 200: return return_code
         return 200 
     #
+    
     def GetVPNipsecPhase1(self, name=''):
         """
         Return the json vpn phase1 object, when the param name is defined it returns the selected object, without name: return all the objects.
@@ -2276,3 +2491,40 @@ class Fortigate:
         return self.ApiDelete('cmdb/vpn.ipsec/phase1-interface/'+ name + '/', payload)  
 
     def DelVPNipsecPhase2(self, name):
+        """
+        Delete the phase2 configuration of an ipsec vpn
+
+        Parameters
+        ----------        
+        name: object to delete (type string)
+
+        Returns
+        -------
+        Http status code: 200 if ok, 4xx if an error occurs
+        """
+        payload = {'json':
+                    {
+                    'name': 'phase2-interface'
+                    }     
+                }
+        return self.ApiDelete('cmdb/vpn.ipsec/phase2-interface/'+ name + '/', payload) 
+    
+    def DelAllVPNipsec(self):
+        """
+        Delete all vpn of the vdom.
+
+        Parameters
+        ----------        
+
+        Returns
+        -------
+        Http status code: 200 if ok, 4xx if an error occurs
+        """ 
+        req = self.ApiGet('cmdb/vpn.ipsec/phase1-interface/')
+        data = json.loads(req.text)
+        for y in range(0,len(data['results'])):
+            vpn_name = data['results'][y]['name']
+            return_code = self.DelVPNipsec(vpn_name)
+            print 'del vpn:', vpn_name , 'res:', return_code
+            if return_code != 200: return return_code
+        return 200 
