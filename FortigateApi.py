@@ -1,3 +1,6 @@
+# coding: utf-8
+from __future__ import unicode_literals
+
 # FortigateApi.py
 # access to fortigate rest api
 # David Chayla - nov 2016
@@ -9,10 +12,9 @@
 # v1.6 add access to user local 
 # v1.7 correction DelAllUserLocal
 # v1.8 creation method DelAllVPNipsec() + correction DelSystemAdmin()
-
+# v1.9 various cleanups
 
 import requests, json
-
 
 # class
 class Fortigate:
@@ -94,20 +96,16 @@ class Fortigate:
         """
         req = self.ApiGet(url)
         data = json.loads(req.text)
-        #print "exists data:", data
-        #print '--------------------------------------'
+
         for y in range(0,len(data['results'])):
             identical = True 
-            #print '--------'
             for x in range(0,len(objects)):
                 req_res = data['results'][y][objects[x][0]]
                 if (type(req_res) is list):
                     if ((req_res != []) and (objects[x][1] != req_res[0]['name'])):
-                        #print 'object list is different:',objects[x][0], objects[x][1] ,'to',req_res[0]['name']
                         identical = False
                         break
                 elif (objects[x][1] != req_res):
-                    #print 'object is different:', objects[x][0], ':', objects[x][1] ,'to', req_res
                     identical = False
                     break	
             if identical: 
@@ -160,7 +158,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        name = str(name)
         objects =  [['name',name]]
         if not (self.Exists('cmdb/system/vdom/', objects)):
             #object does not exist, create it
@@ -208,9 +205,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        password = str(password)
-        #profile: prof_admin/super_admin
         payload = {'json':
                     {
                     'name':  name,
@@ -241,8 +235,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        password = str(password)
         objects =  [['name',name]]
         if not (self.Exists('cmdb/system/admin/', objects)):
             #object does not exist, create it
@@ -266,9 +258,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        password = str(password)
-        #profile: prof_admin/super_admin
         payload = {'json':
                     {
                     'name':  name,
@@ -336,9 +325,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        passwd = str(passwd)
-
         payload = {'json':
                     {
                     'name':  name,
@@ -370,8 +356,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        passwd = str(passwd)
         objects =  [['name',name],['type',type_user]]
         if not (self.Exists('cmdb/user/local/', objects)):
             #object does not exist, create it
@@ -398,9 +382,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        passwd = str(passwd)
-
         payload = {'json':
                     {
                     'name':  name,
@@ -489,10 +470,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        name = str(name)
-        ip_mask = str(ip_mask)
-        vdom = str(vdom)
-        allowaccess = str(allowaccess)
         #type:vlan/loopback
         #allowaccess: ping/http/https/ssh/snmp
         payload = { 'json':
@@ -528,10 +505,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        name = str(name)
-        ip_mask = str(ip_mask)
-        vdom = str(vdom)
-        allowaccess = str(allowaccess)
         objects =  [['name',name],['ip',ip_mask]] 
         if not (self.Exists('cmdb/system/interface/', objects)):
             #object does not exist, create it
@@ -555,10 +528,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        name = str(name)
-        ip_mask = str(ip_mask)
-        vdom = str(vdom)
-        allowaccess = str(allowaccess)
         #type:vlan/loopback
         #allowaccess: ping/http/https/ssh/snmp
         payload = { 'json':
@@ -599,13 +568,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        name = str(name)
-        interface = str(interface)
-        vlanid = str(vlanid)
-        ip_mask = str(ip_mask)
-        vdom = str(vdom)
-        mode = str(mode)
-        allowaccess = str(allowaccess)
         payload = { 'json':
                     {
                     'name': name,
@@ -654,13 +616,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        name = str(name)
-        interface = str(interface)
-        vlanid = str(vlanid)
-        ip_mask = str(ip_mask)
-        vdom = str(vdom)
-        mode = str(mode)
-        allowaccess = str(allowaccess)
         objects =  [['name',name],['interface',interface],['vlanid', int(vlanid)],['ip',ip_mask]] 
         if not (self.Exists('cmdb/system/interface/', objects)):
             #object does not exist, create it
@@ -688,13 +643,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        name = str(name)
-        interface = str(interface)
-        vlanid = str(vlanid)
-        ip_mask = str(ip_mask)
-        vdom = str(vdom)
-        mode = str(mode)
-        allowaccess = str(allowaccess)
         payload = { 'json':
                     {
                     'name': name,
@@ -717,8 +665,6 @@ class Fortigate:
                     }   
                 }
         return self.ApiSet('cmdb/system/interface/' + name + '/', data=payload)
-
-
     
     def DelInterface(self, name):
         """
@@ -792,9 +738,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        subnet = str(subnet)
-        associated_interface = str(associated_interface)
         payload = {'json':
                     {
                     'name':  name ,
@@ -820,9 +763,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        subnet = str(subnet)
-        associated_interface = str(associated_interface)
         objects =  [['name',name],['subnet',subnet]] 
         if not (self.Exists('cmdb/firewall/address/', objects)):
             #object does not exist, create it
@@ -847,8 +787,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        subnet = str(subnet)
         associated_interface = str(associated_interface)
         payload = {'json':
                     {
@@ -927,7 +865,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """   
-        name = str(name)
         member = []
         for member_elem in member_list:
             member.append({'name': member_elem})
@@ -952,7 +889,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
         objects =  [['name',name]]
         if not (self.Exists('cmdb/firewall/addrgrp/', objects)):
             #object does not exist, create it
@@ -974,7 +910,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
         member = []
         for member_elem in member_list:
             member.append({'name': member_elem})
@@ -1055,9 +990,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """   
-        dst = str(dst)
-        device = str(device)
-        gateway = str(gateway)
         payload = {'json':
                     {
                     'dst':  dst,
@@ -1083,9 +1015,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        dst = str(dst)
-        device = str(device)
-        gateway = str(gateway)
         objects =  [['dst',dst],['device',device],['gateway',gateway]] 
         if not (self.Exists('cmdb/router/static/', objects)):
             #object does not exist, create it
@@ -1110,9 +1039,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        dst = str(dst)
-        device = str(device)
-        gateway = str(gateway)
         payload = {'json':
                     {
                     'dst':  dst,
@@ -1225,13 +1151,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        srcintf= str(srcintf)
-        dstintf= str(dstintf)
-        srcaddr= str(srcaddr)
-        dstaddr= str(dstaddr)
-        service= str(service)
-        action= str(action)
-
         payload = {'json':
                     {
                     'srcintf': [
@@ -1302,12 +1221,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        srcintf= str(srcintf)
-        dstintf= str(dstintf)
-        srcaddr= str(srcaddr)
-        dstaddr= str(dstaddr)
-        service= str(service)
-        action= str(action)
         objects =  [['srcintf',srcintf],['dstintf',dstintf],['srcaddr',srcaddr],['dstaddr',dstaddr],['service',service],['action',action],['schedule',schedule],['nat',nat],['poolname',poolname],['ippool',ippool],['status',status],['traffic-shaper',traffic_shaper],['traffic-shaper-reverse',traffic_shaper_reverse]] 
         if not (self.Exists('cmdb/firewall/policy/', objects)):
             #object does not exist, create it
@@ -1344,14 +1257,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        id = str(id)
-        srcintf= str(srcintf)
-        dstintf= str(dstintf)
-        srcaddr= str(srcaddr)
-        dstaddr= str(dstaddr)
-        service= str(service)
-        action= str(action)
-
         payload = {'json':
                     {
                     'srcintf': [
@@ -1396,11 +1301,6 @@ class Fortigate:
                     }     
                 }
         return self.ApiSet('cmdb/firewall/policy/'+ id +'/', payload)
-
-
-
-    
-
 
     def DelFwPolicy(self, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL'):
         """
@@ -1518,8 +1418,6 @@ class Fortigate:
         if traffic_shaper_reverse != '':
             objects.append(['traffic-shaper-reverse',traffic_shaper_reverse])
         
-        print objects
-
         #get all fw policy
         req = self.ApiGet('cmdb/firewall/policy/')
         data = json.loads(req.text)
@@ -1575,10 +1473,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         '''
-        name = str(name)
-        tcp_portrange = str(tcp_portrange)
-        udp_portrange = str(udp_portrange)
-        protocol = str(protocol)
         if tcp_portrange : protocol_number = 6
         elif udp_portrange : protocol_number = 17
 
@@ -1613,10 +1507,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         '''
-        name = str(name)
-        tcp_portrange = str(tcp_portrange)
-        udp_portrange = str(udp_portrange)
-        protocol = str(protocol)
         objects = [['name',name],['tcp-portrange',tcp_portrange],['udp-portrange',udp_portrange],['protocol',protocol],['fqdn',fqdn],['iprange',iprange]]
         if not (self.Exists('cmdb/firewall.service/custom/', objects)):
             #object does not exist, create it
@@ -1643,10 +1533,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         '''
-        name = str(name)
-        tcp_portrange = str(tcp_portrange)
-        udp_portrange = str(udp_portrange)
-        protocol = str(protocol)
         if tcp_portrange : protocol_number = 6
         elif udp_portrange : protocol_number = 17
 
@@ -1731,7 +1617,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """       
-        name = str(name)
         member = []
         for member_elem in member_list:
             member.append({'name': member_elem})
@@ -1756,7 +1641,6 @@ class Fortigate:
         -------        
         Http status code: 200 if ok, 4xx if an error occurs
         """
-        name = str(name)
         objects =  [['name',name]]
         if not (self.Exists('cmdb/firewall.service/group/', objects)):
             #object does not exist, create it
@@ -1778,7 +1662,6 @@ class Fortigate:
         -------    
         Http status code: 200 if ok, 4xx if an error occurs    
         """
-        name = str(name)
         member = []
         for member_elem in member_list:
             member.append({'name': member_elem})
@@ -2005,10 +1888,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """   
-        name = str(name)
-        extip = str(extip)
-        extinff = str(extintf)
-        mappedip = str(mappedip)
         mappedip = [{'range': mappedip}]
         payload = {'json':
             {
@@ -2045,10 +1924,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        extip = str(extip)
-        extinff = str(extintf)
-        mappedip = str(mappedip)
         objects =  [['name',name]]
         if not (self.Exists('cmdb/firewall/vip/', objects)):
             #object does not exist, create it
@@ -2077,10 +1952,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        extip = str(extip)
-        extinff = str(extintf)
-        mappedip = str(mappedip)
         mappedip = [{'range': mappedip}]
         payload = {'json':
             {
@@ -2172,9 +2043,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """   
-        name = str(name)
-        startip = str(startip)
-        endip = str(endip)
         payload = {'json':
             {
             'name': name,
@@ -2212,9 +2080,6 @@ class Fortigate:
         -------
         Http status code: 200 if ok, 4xx if an error occurs
         """ 
-        name = str(name)
-        startip = str(startip)
-        endip = str(endip)
         objects =  [['name',name]]
         if not (self.Exists('cmdb/firewall/ippool/', objects)):
             #object does not exist, create it
