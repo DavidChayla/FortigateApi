@@ -1247,6 +1247,17 @@ class Fortigate:
         req = self.ApiGet('cmdb/firewall/policy/' + id)
         return req.text
 
+    def GetFwPolicyStats(self):
+        """
+	Return json object with traffic statistics for all policies. 
+	
+	Returns
+	-------
+	Return the json fw policy statistics
+	"""
+	req = self.ApiGet('monitor/firewall/policy')
+	return req.text
+
     def AddFwPolicy(self, srcintf='any', dstintf='any', srcaddr='all', dstaddr='all', service='ALL', action='accept', schedule='always', nat='disable', poolname='[]', ippool='disable', status='enable', comments='', traffic_shaper='', traffic_shaper_reverse=''):
         """
         Create a fw policy.
