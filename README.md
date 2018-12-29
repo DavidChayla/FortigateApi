@@ -20,11 +20,11 @@ Of theses objects:
 - VPN
 
 
-Access to the firewall through HTTPS (fortigate firmware 5.2 or 5.4).
+Access to the firewall through HTTPS (tested ok fortigate firmware 5.2 or 5.4, should work for newer versions).
 
 
 If an example is worth a thousand words (connect to the fw, create an fw address object, get the json definition of the object, modify the ip address and then delete the object):
-
+```
 import FortigateApi 
 
 fg = FortigateApi.Fortigate('172.30.40.50', 'myvdom', 'admin', 'mypasswd') 
@@ -44,7 +44,7 @@ fg.SetFwAddress('srv-A','10.2.2.2/32')
 fg.DelFwAddress('srv-A')
 
 200
-
+```
 
 A toolbox of everything you need to manage the fw, used for daily production at Sigma Informatique.
 Clean and simple (at least i tried to)
